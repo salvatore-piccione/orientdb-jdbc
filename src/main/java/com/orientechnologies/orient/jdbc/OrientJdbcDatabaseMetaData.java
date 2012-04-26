@@ -34,20 +34,28 @@ import com.orientechnologies.orient.core.metadata.OMetadata;
 import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.jdbc.common.OrientJdbcConstants;
 
 /**
  * @author Roberto Franchini (CELI srl - franchini--at--celi.it)
- * @author Salvatore Piccione (TXT e-solutions SpA - salvo.picci@gmail.com)
+ * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
  */
 public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     private final OrientJdbcConnection connection;
     private final ODatabaseRecord database;
     private final OMetadata metadata;
 
-    public OrientJdbcDatabaseMetaData(OrientJdbcConnection iConnection, ODatabaseRecord iDatabase) {
+    public OrientJdbcDatabaseMetaData(OrientJdbcConnection iConnection) throws SQLException {
         connection = iConnection;
-        database = iDatabase;
-        metadata = database.getMetadata();
+        if (iConnection.isWrapperFor(ODatabaseRecord.class)) {
+            database = iConnection.unwrap(ODatabaseRecord.class);
+            metadata = database.getMetadata();
+        }
+        else {
+            //FIXME add support for ObjectDatabase
+            database = null;//iConnection.unwrap(ODatabaseObject.class);
+            metadata = null;
+        }
     }
 
     public boolean allProceduresAreCallable() throws SQLException {
@@ -171,7 +179,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
 
     public String getDriverName() throws SQLException {
 
-        return "OrientDB JDBC Driver";
+        return OrientJdbcConstants.DRIVER_NAME;
     }
 
     public String getDriverVersion() throws SQLException {
@@ -345,7 +353,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
             for (String keyFieldName : unique.getDefinition().getFields()) {
                 ODocument doc = new ODocument();
                 doc.field("TABLE_CAT", catalog);
-                doc.field("TABLE_SCHEM", schema);
+                doc.field("TABLE_SCHEMA", schema);
                 doc.field("TABLE_NAME", table);
                 doc.field("COLUMN_NAME", keyFieldName);
                 doc.field("KEY_SEQ", Integer.valueOf(keyFiledSeq), OType.INTEGER);
@@ -356,9 +364,9 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
             }
 
         }
-        OrientJdbcStatement iOrientJdbcStatement = new OrientJdbcStatement(connection);
-
-        ResultSet result = new OrientJdbcResultSet(iOrientJdbcStatement, iRecords, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        
+        ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), iRecords, 
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION);
         return result;
     }
 
@@ -393,8 +401,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getSQLStateType() throws SQLException {
-
-        return 0;
+	    return DatabaseMetaData.sqlStateXOpen;
     }
 
     public String getSchemaTerm() throws SQLException {
@@ -443,13 +450,11 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public ResultSet getTableTypes() throws SQLException {
-
-        OrientJdbcStatement iOrientJdbcStatement = new OrientJdbcStatement(connection);
-
         List<ODocument> records = new ArrayList<ODocument>();
         records.add(new ODocument().field("TABLE_TYPE", "TABLE"));
 
-        ResultSet result = new OrientJdbcResultSet(iOrientJdbcStatement, records, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), records, 
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION);
 
         return result;
     }
@@ -820,22 +825,48 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-
-        return false;
+        if (supportsResultSetType(type)) {
+            switch (concurrency) {
+                case ResultSet.CONCUR_READ_ONLY:
+                    return true;
+                case ResultSet.CONCUR_UPDATABLE:
+                    return false; //TODO to be implemented!
+                default:
+                    throw new SQLException(ErrorMessages.get(
+                            "ResultSet.badConcurrency", ResultSet.CONCUR_READ_ONLY + ", " + ResultSet.CONCUR_UPDATABLE, concurrency));
+            }
+        } else
+            return false;
     }
 
     public boolean supportsResultSetHoldability(int holdability) throws SQLException {
-
-        return false;
+        //TODO Check with Luca if this is right
+        switch (holdability) {
+            case ResultSet.HOLD_CURSORS_OVER_COMMIT:
+                return true; //this is the default behavior
+            case ResultSet.CLOSE_CURSORS_AT_COMMIT:
+                return false; //TODO to be implemented!
+            default:
+                throw new SQLException(ErrorMessages.get(
+                        "ResultSet.badHoldability", ResultSet.CLOSE_CURSORS_AT_COMMIT + ", " + ResultSet.HOLD_CURSORS_OVER_COMMIT, holdability));
+        }
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
-
-        return false;
+        //TODO Check with Luca if this is right
+        switch (type) {
+            case ResultSet.TYPE_FORWARD_ONLY:
+            case ResultSet.TYPE_SCROLL_INSENSITIVE:
+                return true;
+            case ResultSet.TYPE_SCROLL_SENSITIVE:
+                return false;
+            default:
+                throw new SQLException(ErrorMessages.get("ResultSet.badType",ResultSet.TYPE_FORWARD_ONLY + ", " + 
+                        ResultSet.TYPE_SCROLL_INSENSITIVE + ", " + ResultSet.TYPE_SCROLL_SENSITIVE, type));
+        }
     }
 
     public boolean supportsSavepoints() throws SQLException {
-
         return false;
     }
 
@@ -945,13 +976,18 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-
-        return false;
+    	if (iface == null)
+            throw new SQLException(ErrorMessages.get("Wrapper.wrappedClassIsNull"));
+        return iface.isInstance(metadata);
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
-
-        return null;
+    	if (iface == null)
+            throw new SQLException(ErrorMessages.get("Wrapper.wrappedClassIsNull"));
+    	try {
+            return iface.cast(database);
+        } catch (ClassCastException e) {
+            throw new SQLException(e);
+        }
     }
-
 }

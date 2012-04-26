@@ -1,5 +1,5 @@
-/***************************************************************************
- * Copyright 2011 TXT e-solutions SpA
+/*
+ * Copyright 2011-2012 TXT e-solutions SpA
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,7 +17,7 @@
  *
  * Contributors:
  *        Domenico Rotondi (TXT e-solutions SpA)
- **************************************************************************/
+ */
 package com.orientechnologies.orient.jdbc;
 
 import java.io.IOException;
@@ -30,12 +30,13 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.orientechnologies.common.log.OLogManager;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 
 import static java.util.Arrays.asList;
 
 /**
- * @author Salvatore Piccione (TXT e-solutions SpA - salvo.picci@gmail.com)
+ * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
  */
 public class OrientBlob implements Blob {
 
@@ -90,9 +91,9 @@ public class OrientBlob implements Blob {
       */
     public byte[] getBytes(long pos, int length) throws SQLException {
         if (pos < 1)
-            throw new SQLException("The position of the first byte in the BLOB value to be " + "extracted cannot be less than 1");
+            throw new SQLException(ErrorMessages.get("Blob.positionLessThanMin"));
         if (length < 0)
-            throw new SQLException("The number of the consecutive bytes in the BLOB value to " + "be extracted cannot be a negative number");
+            throw new SQLException(ErrorMessages.get("Blob.negativeLength"));
 
         int relativeIndex = this.getRelativeIndex(pos);
 
@@ -204,8 +205,13 @@ public class OrientBlob implements Blob {
       * @see java.sql.Blob#truncate(long)
       */
     public void truncate(long len) throws SQLException {
-        if (len < 0) throw new SQLException("The length of a BLOB cannot be a negtive number.");
-        if (len < this.length) this.length = len;
+        if (len < 0) throw new SQLException(ErrorMessages.get("Blob.negativeTruncationLenght"));
+		if (len > this.length) throw new SQLException(ErrorMessages.get("Blob.exceedingTruncationLenght",len));
+		if (len < this.length) {
+		    if (OLogManager.instance().isDebugEnabled())
+		    	OLogManager.instance().debug(null, LogMessages.get("Blob.newLengthAfterTruncation", len));
+		    this.length = len;
+		}
     }
 
     /*
