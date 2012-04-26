@@ -9,6 +9,7 @@ import org.junit.BeforeClass;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.jdbc.common.OrientJdbcConnectionProperties;
 
 import static java.lang.Class.forName;
 import static com.orientechnologies.orient.jdbc.OrientDbCreationHelper.createSchemaDB;
@@ -27,7 +28,7 @@ public abstract class OrientJdbcBaseTest {
     @Before
     public void prepareDatabase() throws Exception {
         String dbUrl = "local:./working/db/test";
-        dbUrl = "memory:test";
+//        dbUrl = "memory:test";
 
         ODatabaseDocumentPool.global().close();
 
@@ -50,9 +51,9 @@ public abstract class OrientJdbcBaseTest {
         db.close();
 
         Properties info = new Properties();
-        info.put("user", username);
-        info.put("password", password);
-
+        info.put(OrientJdbcConnectionProperties.Keys.USERNAME, username);
+		info.put(OrientJdbcConnectionProperties.Keys.PASSWORD, password);
+		
         conn = (OrientJdbcConnection) DriverManager.getConnection("jdbc:orient:" + dbUrl, info);
 
     }

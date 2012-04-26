@@ -88,7 +88,7 @@ public class OrientJdbcStatementDMLtest extends OrientJdbcBaseTest {
         stmt.close();
 
         // double value test pattern?
-        ODatabaseDocumentTx database = conn.getDatabase();
+        ODatabaseDocumentTx database = conn.unwrap(ODatabaseDocumentTx.class);
         assertThat(database.getClusterIdByName("account"), notNullValue());
         OClass account = database.getMetadata().getSchema().getClass("Account");
         assertThat(account, notNullValue());
@@ -112,7 +112,7 @@ public class OrientJdbcStatementDMLtest extends OrientJdbcBaseTest {
         stmt.close();
 
         // double value test pattern?
-        ODatabaseDocumentTx database = conn.getDatabase();
+        ODatabaseDocumentTx database = conn.unwrap(ODatabaseDocumentTx.class);
         assertThat(database.getClusterIdByName("account"), notNullValue());
         OClass account = database.getMetadata().getSchema().getClass("Account");
         assertThat(account, notNullValue());

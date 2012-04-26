@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 TXT e-solutions SpA
+ * Copyright 2011-2012 TXT e-solutions SpA
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -50,7 +50,7 @@ import static org.junit.Assert.fail;
 
 /**
  * @author Roberto Franchini (CELI srl - franchini@celi.it)
- * @author Salvatore Piccione (TXT e-solutions SpA - salvo.picci@gmail.com)
+ * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
  */
 public class OrientGraphJdbcQueryTest extends OrientGraphJdbcBaseTest {
 
@@ -67,120 +67,125 @@ public class OrientGraphJdbcQueryTest extends OrientGraphJdbcBaseTest {
 
     @Test
     public void testQuery() {
-        String query = "select * from OGraphVertex where description like '%Production Cell%'";
-        System.out.println("Executing: " + query);
-        try {
+		String query = "select from OGraphVertex where description like '%Production Cell%'";
+		System.out.println("Executing: " + query);
+		try {
 
-            Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+			Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
-            ResultSet result = statement.executeQuery(query);
+			ResultSet result = statement.executeQuery(query);
+			int count = 1;
 
-            while (result.next()) {
-                ResultSetMetaData resultMetaData = result.getMetaData();
-                for (int i = 1; i <= resultMetaData.getColumnCount(); i++) {
-                    String columnName = resultMetaData.getColumnName(i);
+			while (result.next()) {
+			    System.out.println("---------- ITEM " + count++ + " ----------");
+				ResultSetMetaData resultMetaData = result.getMetaData();
+				for (int i = 1; i <= resultMetaData.getColumnCount(); i++) {
+					String columnName = resultMetaData.getColumnName(i);
+					System.out.println(i + " - Column name:: " + columnName);
 
-                    int columnType = resultMetaData.getColumnType(i);
-                    Integer expectedType = OrientGraphJdbcCreationHelper.SQL_TYPES.get(columnName);
+					int columnType = resultMetaData.getColumnType(i);
+					Integer expectedType = OrientGraphJdbcCreationHelper.SQL_TYPES.get(columnName);
+					System.out.println("columnType:: " + columnType);
+					System.out.println("expectedType:: " + expectedType);
 
-                    assertColumnType(columnName, expectedType, columnType);
+					assertColumnType(columnName, expectedType, columnType);
 
-                    Object value = result.getObject(i);
+					Object value = result.getObject(i);
 
-                    System.out.print(i + " - ");
-                    if (value instanceof Collection<?>) {
-                        Collection<?> list = (Collection<?>) value;
-                        System.out.println("----- collection");
-                        for (Object obj : list)
-                            System.out.println("\t" + obj + " class: " + obj.getClass().getName());
-                        System.out.println("----- end collection");
-                    } else
-                        System.out.println(resultMetaData.getColumnName(i) + ": " + value + " (" + value.getClass().getName() + ")");
-                }
-                System.out.println("--------------------------------");
-            }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-            Assert.fail("An error occured during the execution of the SQL Query.");
-        }
-    }
+					if (value instanceof Collection<?>) {
+						Collection<?> list = (Collection<?>) value;
+						System.out.println("START collection");
+						for (Object obj : list)
+							System.out.println("\t" + obj + " class: " + obj.getClass().getName());
+						System.out.println("END collection");
 
-    private void assertColumnType(String columnName, int expectedType, int actualType) {
-        Assert.assertEquals("Unexpected type of the column:: " + columnName, expectedType, actualType);
-    }
+					} else System.out.println("Value:: " + value + " (" + value.getClass().getName() + ")");
+				}
+				System.out.println("--------------------------------");
+			}
 
-    @Test
-    public void shouldLoadSingleBinaryData() throws FileNotFoundException, IOException, SQLException, NoSuchAlgorithmException {
-        File binary_file = new File("./working/output_binary.pdf");
-        binary_file.delete();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			Assert.fail("An error occured during the execution of the SQL Query.");
+		}
+	}
 
-        String digest = this.calculateMD5checksum(ClassLoader.getSystemResourceAsStream(OrientGraphJdbcCreationHelper.FILE_NAME));
+	private void assertColumnType(String columnName, int expectedType, int actualType) {
+		Assert.assertEquals("Unexpected type of the column:: " + columnName, expectedType, actualType);
+	}
 
-        String query = "select * from OGraphVertex where name like '%single binary record%'";
+	@Test
+	public void shouldLoadSingleBinaryData() throws FileNotFoundException, IOException, SQLException, NoSuchAlgorithmException {
+		File binary_file = new File("./working/output_binary.pdf");
+		binary_file.delete();
 
-        Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		String digest = this.calculateMD5checksum(ClassLoader.getSystemResourceAsStream(OrientGraphJdbcCreationHelper.FILE_NAME));
 
-        ResultSet result = statement.executeQuery(query);
+		String query = "select * from OGraphVertex where name like '%single binary record%'";
 
-        assertTrue(result.next());
-        byte[] bytes = result.getBytes("binary_data");
+		Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
-        new FileOutputStream(binary_file).write(bytes);
-        assertTrue("The file '" + binary_file.getName() + "' does not exist", binary_file.exists());
-        this.verifyMD5checksum(binary_file, digest);
+		ResultSet result = statement.executeQuery(query);
 
-    }
+		assertTrue(result.next());
+		byte[] bytes = result.getBytes("binary_data");
 
-    @Test
-    public void shouldLoadBlobFromMultipleBinaryData() throws FileNotFoundException, IOException, SQLException, NoSuchAlgorithmException {
-        File binaryFile = new File("./working/output_blob.pdf");
-        binaryFile.delete();
+		new FileOutputStream(binary_file).write(bytes);
+		assertTrue("The file '" + binary_file.getName() + "' does not exist", binary_file.exists());
+		this.verifyMD5checksum(binary_file, digest);
 
-        String digest = this.calculateMD5checksum(ClassLoader.getSystemResourceAsStream(OrientGraphJdbcCreationHelper.FILE_NAME));
+	}
 
-        String query = "select * from OGraphVertex where name like '%multiple binary record%'";
+	@Test
+	public void shouldLoadBlobFromMultipleBinaryData() throws FileNotFoundException, IOException, SQLException, NoSuchAlgorithmException {
+		File binaryFile = new File("./working/output_blob.pdf");
+		binaryFile.delete();
 
-        Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		String digest = this.calculateMD5checksum(ClassLoader.getSystemResourceAsStream(OrientGraphJdbcCreationHelper.FILE_NAME));
 
-        ResultSet result = statement.executeQuery(query);
+		String query = "select * from OGraphVertex where name like '%multiple binary record%'";
 
-        assertTrue(result.next());
-        Blob blob = result.getBlob("binary_data");
-        assertNotNull(blob);
+		Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
-        System.out.println("length of blob:: " + blob.length());
-        new FileOutputStream(binaryFile).write(blob.getBytes(1, (int) blob.length()));
-        assertTrue("The file '" + binaryFile.getName() + "' does not exist", binaryFile.exists());
-        this.verifyMD5checksum(binaryFile, digest);
+		ResultSet result = statement.executeQuery(query);
 
-    }
+		assertTrue(result.next());
+		Blob blob = result.getBlob("binary_data");
+		assertNotNull(blob);
 
-    private void verifyMD5checksum(File fileToBeChecked, String digest) {
-        try {
-            assertEquals("The MD5 checksum of the file '" + fileToBeChecked.getAbsolutePath() + "' does not match the given one.", digest, calculateMD5checksum(new FileInputStream(fileToBeChecked)));
-        } catch (NoSuchAlgorithmException e) {
-            fail(e.getMessage());
-        } catch (IOException e) {
-            fail(e.getMessage());
-        }
-    }
+		System.out.println("length of blob:: " + blob.length());
+		new FileOutputStream(binaryFile).write(blob.getBytes(1, (int) blob.length()));
+		assertTrue("The file '" + binaryFile.getName() + "' does not exist", binaryFile.exists());
+		this.verifyMD5checksum(binaryFile, digest);
 
-    private String calculateMD5checksum(InputStream fileStream) throws NoSuchAlgorithmException, IOException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
+	}
 
-        try {
-            fileStream = new DigestInputStream(fileStream, md);
-            while (fileStream.read() != -1)
-                ;
-        } finally {
-            try {
-                fileStream.close();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        return new BigInteger(1, md.digest()).toString(16);
-    }
+	private void verifyMD5checksum(File fileToBeChecked, String digest) {
+		try {
+			assertEquals("The MD5 checksum of the file '" + fileToBeChecked.getAbsolutePath() + "' does not match the given one.", digest, calculateMD5checksum(new FileInputStream(fileToBeChecked)));
+		} catch (NoSuchAlgorithmException e) {
+			fail(e.getMessage());
+		} catch (IOException e) {
+			fail(e.getMessage());
+		}
+	}
+
+	private String calculateMD5checksum(InputStream fileStream) throws NoSuchAlgorithmException, IOException {
+		MessageDigest md = MessageDigest.getInstance("MD5");
+
+		try {
+			fileStream = new DigestInputStream(fileStream, md);
+			while (fileStream.read() != -1)
+				;
+		} finally {
+			try {
+				fileStream.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return new BigInteger(1, md.digest()).toString(16);
+	}
 }

@@ -1,5 +1,9 @@
 package com.orientechnologies.orient.jdbc;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,12 +13,8 @@ import org.junit.Test;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class OrientJdbcDriverTest {
-
+	
     @Test
     public void shouldAcceptsWellFormattedURLOnly() throws ClassNotFoundException, SQLException {
 

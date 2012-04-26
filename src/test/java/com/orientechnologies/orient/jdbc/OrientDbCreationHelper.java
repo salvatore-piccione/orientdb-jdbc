@@ -20,9 +20,8 @@ public class OrientDbCreationHelper {
 
         for (int i = 1; i <= documents; i++) {
             ODocument doc = new ODocument();
-            doc.setClassName("Item");
-            doc = createItem(i, doc);
-            db.save(doc, "Item");
+            createItem(i, doc);
+            db.save(doc);
 
         }
 

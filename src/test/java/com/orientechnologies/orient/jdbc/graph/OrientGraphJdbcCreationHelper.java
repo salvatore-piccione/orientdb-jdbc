@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 TXT e-solutions SpA
+ * Copyright 2011-2012 TXT e-solutions SpA
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.orientechnologies.orient.client.remote.OServerAdmin;
 import com.orientechnologies.orient.core.db.record.ODatabaseRecord;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import com.tinkerpop.blueprints.pgm.TransactionalGraph.Conclusion;
@@ -40,10 +41,22 @@ import com.tinkerpop.blueprints.pgm.impls.orientdb.OrientGraph;
 
 import static java.util.Arrays.asList;
 
+/**
+ * 
+ * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
+ *
+ */
 public class OrientGraphJdbcCreationHelper {
 
-    static final String URL_DB = "memory:test-graph-orient-jdbc";
-//	static final String URL_DB = "local:./working/graph/test-graph-orient-jdbc";
+//     static final String URL_DB = "memory:test-graph-orient-jdbc";
+//    static final String URL_DB = "local:./working/graph/test-graph-orient-jdbc";
+    static final String URL_DB = "remote:iot-at-work1:2425/test-graph-orient-jdbc";
+
+    static final String ADMINISTRATOR_NAME = "root";
+    
+    static final String ADMINISTRATOR_PWD =
+        /*OrientDB 1.0 snapshot*/
+        "3D0C711F443AF57320C20547E8A55BC11A432B9B313D8DEFFA2C1B798698985D";
 
     static final String USERNAME = "admin";
 
@@ -68,6 +81,8 @@ public class OrientGraphJdbcCreationHelper {
     static final Map<String, Integer> SQL_TYPES = initExpectedSqlTypesMap();
 
     static final String FILE_NAME = "file.pdf";
+    
+    static final String RID = "rid";
 
     private static Map<String, Integer> initExpectedSqlTypesMap() {
         Map<String, Integer> map = Collections.synchronizedMap(new HashMap<String, Integer>());
@@ -76,6 +91,7 @@ public class OrientGraphJdbcCreationHelper {
         map.put(NAME, Types.VARCHAR);
         map.put("in", Types.JAVA_OBJECT);
         map.put("out", Types.JAVA_OBJECT);
+        map.put(RID, Types.JAVA_OBJECT);
         return map;
     }
 
@@ -83,6 +99,11 @@ public class OrientGraphJdbcCreationHelper {
         OrientGraph graphDB = null;
         try {
 
+            OServerAdmin admin = new OServerAdmin(URL_DB);
+            admin.connect(ADMINISTRATOR_NAME, ADMINISTRATOR_PWD);
+            if (admin.existsDatabase())
+                admin.dropDatabase();
+            admin.createDatabase("graph", "local");
             graphDB = new OrientGraph(URL_DB, USERNAME, PASSWORD);
 
             graphDB.setMaxBufferSize(0);
@@ -113,7 +134,7 @@ public class OrientGraphJdbcCreationHelper {
             graphDB.addEdge(null, cell, cellComponent, COMPONENT_EDGE);
 
             String filePath = "./src/test/resources/file.pdf";
-
+            
             Vertex binaryVertex = graphDB.addVertex(null);
             binaryVertex.setProperty(NAME, "NoSQL Definition (single binary record)");
             binaryVertex.setProperty(BINARY_DATA, loadFile(graphDB.getRawGraph(), filePath));
@@ -150,7 +171,7 @@ public class OrientGraphJdbcCreationHelper {
 
     /**
      * Loads the file in a single instance of {@link ORecordBytes}
-     *
+     * 
      * @param database
      * @param fileURI
      * @return
@@ -194,7 +215,7 @@ public class OrientGraphJdbcCreationHelper {
                 binaryChuncks.add(recordChunck);
             }
             return binaryChuncks;
-        }
+        } 
         return asList(loadFile(database, filePath));
     }
 
