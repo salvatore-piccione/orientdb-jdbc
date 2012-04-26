@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.jdbc.common.OrientJdbcConstants;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -26,15 +27,15 @@ public class OrientJdbcDatabaseMetaDataTest extends OrientJdbcBaseTest {
     @Test
     public void verifyDriverAndDatabaseVersions() throws SQLException {
 
-        assertEquals ( "memory:test", metaData.getURL());
+        assertEquals ( OrientJdbcBaseTest.DB_URL, metaData.getURL());
         assertEquals("admin", metaData.getUserName());
-        assertEquals("OrientDB", metaData.getDatabaseProductName());
+        assertEquals(OrientJdbcConstants.DATABASE_PRODUCT_NAME, metaData.getDatabaseProductName());
         assertEquals(OConstants.ORIENT_VERSION, metaData.getDatabaseProductVersion());
         assertEquals(1, metaData.getDatabaseMajorVersion());
         assertEquals(0, metaData.getDatabaseMinorVersion());
 
         assertEquals("OrientDB JDBC Driver", metaData.getDriverName());
-        assertEquals("OrientDB 1.0 JDBC Driver", metaData.getDriverVersion());
+        assertEquals(OrientJdbcDriver.getVersion(), metaData.getDriverVersion());
         assertEquals(1, metaData.getDriverMajorVersion());
         assertEquals(0, metaData.getDriverMinorVersion());
 

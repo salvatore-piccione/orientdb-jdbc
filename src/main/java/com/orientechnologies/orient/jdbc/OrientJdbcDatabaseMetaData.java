@@ -154,7 +154,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
 
     public String getDatabaseProductName() throws SQLException {
 
-        return "OrientDB";
+        return OrientJdbcConstants.DATABASE_PRODUCT_NAME;
     }
 
     public String getDatabaseProductVersion() throws SQLException {
@@ -366,7 +366,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
         }
         
         ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), iRecords, 
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION);
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION, false);
         return result;
     }
 
@@ -454,7 +454,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
         records.add(new ODocument().field("TABLE_TYPE", "TABLE"));
 
         ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), records, 
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION, false);
 
         return result;
     }

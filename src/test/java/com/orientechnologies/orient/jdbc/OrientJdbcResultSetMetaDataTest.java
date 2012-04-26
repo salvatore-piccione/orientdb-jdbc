@@ -30,13 +30,13 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
 
         assertTrue(rs.next());
 
-        assertEquals(0, rs.getRow());
+        assertEquals(1, rs.getRow());
 
-        assertEquals("1", rs.getString(1));
+        assertEquals("1", rs.getString(2));
         assertEquals("1", rs.getString("stringKey"));
-        assertEquals(1, rs.findColumn("stringKey"));
+        assertEquals(2, rs.findColumn("stringKey"));
 
-        assertEquals(1, rs.getInt(2));
+        assertEquals(1, rs.getInt(3));
         assertEquals(1, rs.getInt("intKey"));
 
         assertEquals(rs.getString("text").length(), rs.getLong("length"));
@@ -45,11 +45,11 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
         cal.add(Calendar.HOUR_OF_DAY, -1);
         Date date = new Date(cal.getTimeInMillis());
         assertEquals(date.toString(), rs.getDate("date").toString());
-        assertEquals(date.toString(), rs.getDate(5).toString());
+        assertEquals(date.toString(), rs.getDate(6).toString());
 
         rs.last();
 
-        assertEquals(19, rs.getRow());
+        assertEquals(20, rs.getRow());
         rs.close();
 
         assertTrue(rs.isClosed());
@@ -59,7 +59,8 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
     public void shouldNavigateResultSet() throws Exception {
         assertFalse(conn.isClosed());
 
-        Statement stmt = conn.createStatement();
+        Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+
         ResultSet rs = stmt.executeQuery("SELECT * FROM Item");
         assertEquals(20, rs.getFetchSize());
 
@@ -67,11 +68,11 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
 
         assertTrue(rs.next());
 
-        assertEquals(0, rs.getRow());
+        assertEquals(1, rs.getRow());
 
         rs.last();
 
-        assertEquals(19, rs.getRow());
+        assertEquals(20, rs.getRow());
 
         assertFalse(rs.next());
 
@@ -111,19 +112,19 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
 
         rs.next();
         ResultSetMetaData metaData = rs.getMetaData();
-        assertEquals(5, metaData.getColumnCount());
+        assertEquals(6, metaData.getColumnCount());
 
-        assertEquals("stringKey", metaData.getColumnName(1));
-        assertTrue(rs.getObject(1) instanceof String);
+        assertEquals("stringKey", metaData.getColumnName(2));
+        assertTrue(rs.getObject(2) instanceof String);
 
-        assertEquals("intKey", metaData.getColumnName(2));
+        assertEquals("intKey", metaData.getColumnName(3));
 
-        assertEquals("text", metaData.getColumnName(3));
-        assertTrue(rs.getObject(3) instanceof String);
+        assertEquals("text", metaData.getColumnName(4));
+        assertTrue(rs.getObject(4) instanceof String);
 
-        assertEquals("length", metaData.getColumnName(4));
+        assertEquals("length", metaData.getColumnName(5));
 
-        assertEquals("date", metaData.getColumnName(5));
+        assertEquals("date", metaData.getColumnName(6));
 
     }
 
@@ -138,19 +139,19 @@ public class OrientJdbcResultSetMetaDataTest extends OrientJdbcBaseTest {
         rs.next();
         ResultSetMetaData metaData = rs.getMetaData();
 
-        assertEquals(5, metaData.getColumnCount());
+        assertEquals(6, metaData.getColumnCount());
 
-        assertEquals(Types.INTEGER, metaData.getColumnType(2));
+        assertEquals(Types.INTEGER, metaData.getColumnType(3));
 
-        assertEquals(Types.VARCHAR, metaData.getColumnType(3));
-        assertTrue(rs.getObject(3) instanceof String);
+        assertEquals(Types.VARCHAR, metaData.getColumnType(4));
+        assertTrue(rs.getObject(4) instanceof String);
 
-        assertEquals(Types.BIGINT, metaData.getColumnType(4));
+        assertEquals(Types.BIGINT, metaData.getColumnType(5));
 
-        assertEquals(Types.TIMESTAMP, metaData.getColumnType(5));
+        assertEquals(Types.TIMESTAMP, metaData.getColumnType(6));
 
-        assertEquals(String.class.getName(), metaData.getColumnClassName(1));
-        assertEquals(Types.VARCHAR, metaData.getColumnType(1));
+        assertEquals(String.class.getName(), metaData.getColumnClassName(2));
+        assertEquals(Types.VARCHAR, metaData.getColumnType(2));
 
     }
 

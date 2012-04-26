@@ -92,7 +92,7 @@ public class OrientJdbcResultSet implements ResultSet {
 	private String currentColumnLabel;
 
 	OrientJdbcResultSet(OrientJdbcStatement iOrientJdbcStatement, List<ODocument> iRecords, 
-	        int type, int concurrency, int holdability, int fetchDirection) throws SQLException {
+	        int type, int concurrency, int holdability, int fetchDirection, boolean includeRid) throws SQLException {
 	    statement = iOrientJdbcStatement;
 		databaseMetaData = (OrientJdbcDatabaseMetaData) statement.getConnection().getMetaData();
 		records = iRecords;
@@ -106,33 +106,37 @@ public class OrientJdbcResultSet implements ResultSet {
 		else
 		    cursor = BEFORE_FIRST_INDEX;
 
-		fetchSize = DEFAULT_FETCH_SIZE;
+		fetchSize = rowCount;
+		document = null;
 		
 		if (rowCount > 0) {
-			document = records.get(0);
+			ODocument document = records.get(0);
 			ODatabaseRecordThreadLocal.INSTANCE.set(document.getDatabase());
-			
-			//check that the field name list has the RID
-			boolean hasRIDField = false;
-			int i = 0;
-			String[] fieldNames = document.fieldNames();
-			while (i < fieldNames.length && !hasRIDField) {
-			    if (RID_COLUMN_NAME.equals(fieldNames[i]))
-			        hasRIDField = true;
-			    else
-			        i++;
-			}
-			if (hasRIDField)
+
+            String[] fieldNames = document.fieldNames();
+			if (includeRid) {
+    			//check that the field name list has the RID
+    			boolean hasRIDField = false;
+    			int i = 0;
+    			while (i < fieldNames.length && !hasRIDField) {
+    			    if (RID_COLUMN_NAME.equals(fieldNames[i]))
+    			        hasRIDField = true;
+    			    else
+    			        i++;
+    			}
+    			if (hasRIDField)
+    			    this.fieldNames = fieldNames;
+    			else {
+    			    //add to the top of the field name list the "rid" field
+    	            //that allows the retrieval of the document rid as this field
+    	            //is not included in ODocument.fieldNames()
+    	            ArrayList<String> fieldNameList = new ArrayList<String> (fieldNames.length + 1);
+    	            fieldNameList.add(RID_COLUMN_NAME);
+    	            fieldNameList.addAll(Arrays.asList(fieldNames));
+    	            this.fieldNames = fieldNameList.toArray(new String[fieldNames.length + 1]);
+    			}
+			} else
 			    this.fieldNames = fieldNames;
-			else {
-			    //add to the top of the field name list the "rid" field
-	            //that allows the retrieval of the document rid as this field
-	            //is not included in ODocument.fieldNames()
-	            ArrayList<String> fieldNameList = new ArrayList<String> (fieldNames.length + 1);
-	            fieldNameList.add(RID_COLUMN_NAME);
-	            fieldNameList.addAll(Arrays.asList(fieldNames));
-	            this.fieldNames = fieldNameList.toArray(new String[fieldNames.length + 1]);
-			}
 			    
 		}
 		if  (databaseMetaData.supportsResultSetType(type))

@@ -64,26 +64,28 @@ public class OrientJdbcPreparedStatement extends OrientJdbcStatement implements 
 	private List<String> params;
 	private List<Object[]> batchParams;
 
-	public OrientJdbcPreparedStatement(OrientJdbcConnection iConnection, String sql, boolean readOnly) {
+	public OrientJdbcPreparedStatement(OrientJdbcConnection iConnection, String sql, boolean readOnly) throws SQLException {
 		super(iConnection,readOnly);
 		init(sql);
 	}
 	
 	public OrientJdbcPreparedStatement(OrientJdbcConnection iConnection, String sql,
-			boolean readOnly, int resultSetType, int resultSetConcurrency){
+			boolean readOnly, int resultSetType, int resultSetConcurrency) throws SQLException{
 		super(iConnection, resultSetType, resultSetConcurrency, readOnly);
 		init(sql);
 	}
 
 	public OrientJdbcPreparedStatement(OrientJdbcConnection iConnection, String sql,
 			boolean readOnly, int resultSetType, int resultSetConcurrency,
-			int resultSetHoldability) {
+			int resultSetHoldability) throws SQLException {
 		super(iConnection, resultSetType, resultSetConcurrency, resultSetHoldability, readOnly);
 		init(sql);
 	}
 	
-	private void init(String sql) {
-		if (sql.startsWith(OCommandExecutorSQLSelect.KEYWORD_SELECT))
+	private void init(String sql) throws SQLException {
+	    if ("".equals(sql))
+            throw new SQLException(ErrorMessages.get("PreparedStatement.compileEmptyString"));
+        if (sql.startsWith(OCommandExecutorSQLSelect.KEYWORD_SELECT))
 		    statement = new OSQLSynchQuery<ODocument>(sql);
 		else
 		    statement = new OCommandSQL(sql);
@@ -101,11 +103,11 @@ public class OrientJdbcPreparedStatement extends OrientJdbcStatement implements 
                 List<ODocument> documents = database.query((OQuery<ODocument>) statement,params.toArray(new Object[params.size()]));
                 updateCount = NO_UPDATE_RESULT;
                 if (preferredResultSetMaxRows == NO_LIMIT)
-                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
                 else if (documents.size() > preferredResultSetMaxRows)
-                    resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                    resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
                 else
-                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
     
             } catch (OQueryParsingException e) {
                 throw new SQLSyntaxErrorException("Error on parsing the query", e);

@@ -120,7 +120,8 @@ public class OrientJdbcStatement implements Statement {
 	        throw new SQLException(ErrorMessages.get("Statement.executeStatementOnClosedObject",MESSAGE_FORMAT_CHOICE_INDEX, sql));
 	    if (readOnly && !sql.startsWith(OCommandExecutorSQLSelect.KEYWORD_SELECT))
 	    	throw new SQLException(ErrorMessages.get("Statement.executeUpdateOnReadOnlyConnection", sql));
-		
+		if ("".equals(sql))
+		    throw new SQLException(ErrorMessages.get("Statement.executeEmptyString"));
 	    ODatabaseRecordThreadLocal.INSTANCE.set(database);
 		statement = new OCommandSQL(sql);
 		
@@ -132,11 +133,11 @@ public class OrientJdbcStatement implements Statement {
 				List<ODocument> documents = (List<ODocument>) rawResult;
 				
 				if (preferredResultSetMaxRows == NO_LIMIT)
-                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                    resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
 				else if (documents.size() > preferredResultSetMaxRows)
-				    resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+				    resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
 				else
-					resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+					resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
 				
 				resultSet.setFetchDirection(preferredResultSetFetchDirection);
 								
@@ -166,7 +167,9 @@ public class OrientJdbcStatement implements Statement {
 	public ResultSet executeQuery(final String sql) throws SQLException {
         if (closed)
             throw new SQLException(ErrorMessages.get("Statement.executeQueryOnClosedObject",MESSAGE_FORMAT_CHOICE_INDEX, sql));
-
+        if ("".equals(sql))
+            throw new SQLException(ErrorMessages.get("Statement.executeEmptyString"));
+        
         ODatabaseRecordThreadLocal.INSTANCE.set(database);
         
         OSQLSynchQuery<ODocument> queryTMP = new OSQLSynchQuery<ODocument>(sql);
@@ -175,9 +178,9 @@ public class OrientJdbcStatement implements Statement {
 	        List<ODocument> documents = database.query(queryTMP);
 			updateCount = NO_UPDATE_RESULT;
 			if (preferredResultSetMaxRows == NO_LIMIT)
-                resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                resultSet = new OrientJdbcResultSet(this, documents, resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
             else if (documents.size() > preferredResultSetMaxRows)
-                resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection);
+                resultSet = new OrientJdbcResultSet(this, documents.subList(0, preferredResultSetMaxRows), resultSetType, resultSetConcurrency, resultSetHoldability, preferredResultSetFetchDirection, true);
             else
                 resultSet.setFetchDirection(preferredResultSetFetchDirection);
 			resultSet.setFetchDirection(preferredResultSetFetchDirection);
@@ -194,7 +197,9 @@ public class OrientJdbcStatement implements Statement {
             throw new SQLException(ErrorMessages.get("Statement.executeStatementOnClosedObject", MESSAGE_FORMAT_CHOICE_INDEX, sql));
 	    if (readOnly && !sql.startsWith(OCommandExecutorSQLSelect.KEYWORD_SELECT))
 	    	throw new SQLException(ErrorMessages.get("Statement.executeUpdateOnReadOnlyConnection", sql));
-		statement = new OCommandSQL(sql);
+	    if ("".equals(sql))
+            throw new SQLException(ErrorMessages.get("Statement.executeEmptyString"));
+        statement = new OCommandSQL(sql);
 		executeUpdate();
 		return updateCount;
 	}
@@ -300,7 +305,9 @@ public class OrientJdbcStatement implements Statement {
 	    	throw new SQLException(ErrorMessages.get("Statement.addStatementToBatchOnReadOnlyConnection"));
 	    if (sql.startsWith(OCommandExecutorSQLSelect.KEYWORD_SELECT))
 	    	throw new SQLException(ErrorMessages.get("Statement.addQueryToBatch", sql));
-		batches.add(new OCommandSQL(sql));
+	    if ("".equals(sql))
+            throw new SQLException(ErrorMessages.get("Statement.addEmptyStringToBatch"));
+        batches.add(new OCommandSQL(sql));
 	}
 
 	public void cancel() throws SQLException {

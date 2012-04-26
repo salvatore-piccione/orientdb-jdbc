@@ -18,6 +18,8 @@ import static com.orientechnologies.orient.jdbc.OrientDbCreationHelper.loadDB;
 public abstract class OrientJdbcBaseTest {
 
     protected OrientJdbcConnection conn;
+    
+    static final String DB_URL = "local:./working/db/test";
 
     @BeforeClass
     public static void loadDriver() throws ClassNotFoundException {
@@ -27,12 +29,12 @@ public abstract class OrientJdbcBaseTest {
 
     @Before
     public void prepareDatabase() throws Exception {
-        String dbUrl = "local:./working/db/test";
+        
 //        dbUrl = "memory:test";
 
         ODatabaseDocumentPool.global().close();
 
-        ODatabaseDocumentTx db = new ODatabaseDocumentTx(dbUrl);
+        ODatabaseDocumentTx db = new ODatabaseDocumentTx(DB_URL);
 
         String username = "admin";
         String password = "admin";
@@ -54,7 +56,7 @@ public abstract class OrientJdbcBaseTest {
         info.put(OrientJdbcConnectionProperties.Keys.USERNAME, username);
 		info.put(OrientJdbcConnectionProperties.Keys.PASSWORD, password);
 		
-        conn = (OrientJdbcConnection) DriverManager.getConnection("jdbc:orient:" + dbUrl, info);
+        conn = (OrientJdbcConnection) DriverManager.getConnection("jdbc:orient:" + DB_URL, info);
 
     }
 
