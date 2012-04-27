@@ -40,4 +40,8 @@ public class OrientJdbcConstants {
     public static final String DRIVER_NAME = "OrientDB JDBC Driver";
     
     public static final int UNLIMITED_FETCH_SIZE = 0;
+    
+    //see http://docs.oracle.com/javase/6/docs/technotes/guides/jdbc/
+    public static final int MAJOR_JDBC_VERSION = 3;
+    public static final int MINOR_JDBC_VERSION = 0;
 }

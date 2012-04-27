@@ -162,6 +162,7 @@ public abstract class OrientJdbcConnection implements Connection {
 	}
 
 	public int getTransactionIsolation() throws SQLException {
+	    //TODO check with Luca
 		if (isClosed())
 			throw new SQLException(ErrorMessages.get("Connection.getTransactionIsolationFromClosedObject"));
 		return Connection.TRANSACTION_SERIALIZABLE;

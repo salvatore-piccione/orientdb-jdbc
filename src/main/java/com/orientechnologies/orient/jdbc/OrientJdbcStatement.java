@@ -52,10 +52,7 @@ public class OrientJdbcStatement implements Statement {
     protected static final int DEFAULT_MAX_ROWS = NO_LIMIT;
     protected static final int DEFAULT_QUERY_TIMEOUT = NO_LIMIT;
     
-    protected static final int DEFAULT_RESULT_SET_TYPE = ResultSet.TYPE_FORWARD_ONLY;
-    protected static final int DEFAULT_RESULT_SET_CONCURRENCY = ResultSet.CONCUR_READ_ONLY;
-    protected static final int DEFAULT_RESULT_SET_HOLDABILITY = ResultSet.HOLD_CURSORS_OVER_COMMIT;
-
+    
 	protected final OrientJdbcConnection connection;
 	protected final ODatabaseDocumentTx database;
 
@@ -76,7 +73,9 @@ public class OrientJdbcStatement implements Statement {
 	protected int updateCount;
 
 	public OrientJdbcStatement(final OrientJdbcConnection iConnection, boolean readOnly) {
-		this(iConnection, DEFAULT_RESULT_SET_TYPE, DEFAULT_RESULT_SET_CONCURRENCY, DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
+		this(iConnection, OrientJdbcResultSet.DEFAULT_RESULT_SET_TYPE, 
+		        OrientJdbcResultSet.DEFAULT_RESULT_SET_CONCURRENCY, 
+		        OrientJdbcResultSet.DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
 	}
 
 	/**
@@ -87,7 +86,8 @@ public class OrientJdbcStatement implements Statement {
 	 * @throws SQLException
 	 */
 	public OrientJdbcStatement(OrientJdbcConnection iConnection, int resultSetType, int resultSetConcurrency, boolean readOnly) {
-		this(iConnection, resultSetType, resultSetConcurrency, DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
+		this(iConnection, resultSetType, resultSetConcurrency, 
+		        OrientJdbcResultSet.DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
 	}
 
 	/**
@@ -401,28 +401,19 @@ public class OrientJdbcStatement implements Statement {
 	public int getResultSetConcurrency() throws SQLException {
 	    if (closed)
 	        throw new SQLException(ErrorMessages.get("ResultSet.getConcurrencyFromClosedObject",MESSAGE_FORMAT_CHOICE_INDEX));
-	    if (resultSet == null)
-	        return DEFAULT_RESULT_SET_CONCURRENCY;
-	    else
-	        return resultSet.getConcurrency();
+	    return this.resultSetConcurrency;
 	}
 
 	public int getResultSetHoldability() throws SQLException {
 	    if (closed)
 	        throw new SQLException(ErrorMessages.get("ResultSet.getHoldabilityFromClosedObject",MESSAGE_FORMAT_CHOICE_INDEX));
-	    if (resultSet == null)
-	        return DEFAULT_RESULT_SET_HOLDABILITY;
-	    else
-	        return resultSet.getHoldability();
+	    return this.resultSetHoldability;
 	}
 
 	public int getResultSetType() throws SQLException {
 	    if (closed)
 	        throw new SQLException(ErrorMessages.get("ResultSet.getTypeFromClosedObject"));
-	    if (resultSet == null)
-	        return DEFAULT_RESULT_SET_TYPE;
-	    else
-	        return resultSet.getType();
+	    return this.resultSetType;
 	}
 
 	public int getUpdateCount() throws SQLException {

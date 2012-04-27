@@ -73,6 +73,11 @@ public class OrientJdbcResultSet implements ResultSet {
     static final int DEFAULT_FETCH_DIRECTION = ResultSet.FETCH_FORWARD;
     static final int DEFAULT_FETCH_SIZE = OrientJdbcConstants.UNLIMITED_FETCH_SIZE;
     
+    static final int DEFAULT_RESULT_SET_TYPE = ResultSet.TYPE_FORWARD_ONLY;
+    static final int DEFAULT_RESULT_SET_CONCURRENCY = ResultSet.CONCUR_READ_ONLY;
+    static final int DEFAULT_RESULT_SET_HOLDABILITY = ResultSet.HOLD_CURSORS_OVER_COMMIT;
+
+    
 	private List<ODocument> records = null;
 	private OrientJdbcStatement statement;
 	private OrientJdbcDatabaseMetaData databaseMetaData;
