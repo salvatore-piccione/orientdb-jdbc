@@ -25,13 +25,10 @@
  */
 package com.orientechnologies.orient.jdbc.graph;
 
-import java.io.File;
-import java.net.URISyntaxException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.apache.log4j.PropertyConfigurator;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,12 +52,6 @@ public abstract class OrientGraphJdbcBaseTest {
 
     @BeforeClass
     public static void setUpClass() {
-        try {
-            PropertyConfigurator.configure(new File(OrientGraphJdbcBaseTest.class.getClassLoader().getResource("log4j.properties").toURI()).getAbsolutePath());
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
-        }
-
         // create the graph
         OrientGraphJdbcCreationHelper.createGraphDatabase();
 

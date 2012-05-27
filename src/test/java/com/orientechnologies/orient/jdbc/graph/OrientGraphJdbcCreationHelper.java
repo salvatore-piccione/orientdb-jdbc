@@ -35,9 +35,9 @@ import java.util.Map;
 import com.orientechnologies.orient.client.remote.OServerAdmin;
 import com.orientechnologies.orient.core.db.record.ODatabaseRecord;
 import com.orientechnologies.orient.core.record.impl.ORecordBytes;
-import com.tinkerpop.blueprints.pgm.TransactionalGraph.Conclusion;
-import com.tinkerpop.blueprints.pgm.Vertex;
-import com.tinkerpop.blueprints.pgm.impls.orientdb.OrientGraph;
+import com.tinkerpop.blueprints.TransactionalGraph.Conclusion;
+import com.tinkerpop.blueprints.Vertex;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 import static java.util.Arrays.asList;
 
@@ -106,7 +106,6 @@ public class OrientGraphJdbcCreationHelper {
             admin.createDatabase("graph", "local");
             graphDB = new OrientGraph(URL_DB, USERNAME, PASSWORD);
 
-            graphDB.setMaxBufferSize(0);
             graphDB.startTransaction();
 
             Vertex root = graphDB.addVertex(null);
