@@ -88,12 +88,8 @@ public class OrientNativeGraphConnection extends OrientJdbcConnection {
      * @see com.orientechnologies.orient.jdbc.OrientJdbcConnection#unwrapImpl(java.lang.Class)
      */
     @Override
-    protected <T> T unwrapImpl(Class<T> iface) throws SQLException {
-        try {
-            return iface.cast(graphDatabase);
-        } catch (ClassCastException e) {
-            throw new SQLException(e);
-        }
+    protected <T> T unwrapImpl(Class<T> iface) throws SQLException, ClassCastException {
+        return iface.cast(graphDatabase);
     }
 
     /* (non-Javadoc)

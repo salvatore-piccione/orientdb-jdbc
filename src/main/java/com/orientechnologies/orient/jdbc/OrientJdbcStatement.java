@@ -62,20 +62,20 @@ public class OrientJdbcStatement implements Statement {
 	protected List<OCommandSQL> batches;
 	protected final boolean readOnly;
 
-	protected int resultSetType;
-	protected int resultSetConcurrency;
-	protected int resultSetHoldability;
+	protected final int resultSetType;
+	protected final int resultSetConcurrency;
+	protected final int resultSetHoldability;
 	
 	protected int preferredResultSetFetchDirection;
 	protected int preferredResultSetFetchSize;
 	protected int preferredResultSetMaxRows;
 	
 	protected int updateCount;
-
-	public OrientJdbcStatement(final OrientJdbcConnection iConnection, boolean readOnly) {
-		this(iConnection, OrientJdbcResultSet.DEFAULT_RESULT_SET_TYPE, 
-		        OrientJdbcResultSet.DEFAULT_RESULT_SET_CONCURRENCY, 
-		        OrientJdbcResultSet.DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
+	
+	public OrientJdbcStatement(final OrientJdbcConnection iConnection, boolean readOnly) throws SQLException {
+		this(iConnection, OrientJdbcResultSet.DEFAULT_TYPE, 
+		        OrientJdbcResultSet.DEFAULT_CONCURRENCY, 
+		        OrientJdbcResultSet.DEFAULT_HOLDABILITY, readOnly);
 	}
 
 	/**
@@ -85,23 +85,34 @@ public class OrientJdbcStatement implements Statement {
 	 * @param resultSetConcurrency
 	 * @throws SQLException
 	 */
-	public OrientJdbcStatement(OrientJdbcConnection iConnection, int resultSetType, int resultSetConcurrency, boolean readOnly) {
+	public OrientJdbcStatement(OrientJdbcConnection iConnection, int resultSetType, int resultSetConcurrency, boolean readOnly) throws SQLException {
 		this(iConnection, resultSetType, resultSetConcurrency, 
-		        OrientJdbcResultSet.DEFAULT_RESULT_SET_HOLDABILITY, readOnly);
+		        OrientJdbcResultSet.DEFAULT_HOLDABILITY, readOnly);
 	}
-
 	/**
 	 * @param iConnection
 	 * @param resultSetType
 	 * @param resultSetConcurrency
 	 * @param resultSetHoldability
+	 * @throws SQLException 
 	 */
-	public OrientJdbcStatement(OrientJdbcConnection iConnection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, boolean readOnly) {
+	protected OrientJdbcStatement(OrientJdbcConnection iConnection, int resultSetType, int resultSetConcurrency, int resultSetHoldability, boolean readOnly) throws SQLException {
 		this.connection = iConnection;
 		this.database = iConnection.getOrientDatabase();
-		this.resultSetType = resultSetType;
-		this.resultSetConcurrency = resultSetConcurrency;
-		this.resultSetHoldability = resultSetHoldability;
+		if (connection.supportsResultSetConcurrency(resultSetType, resultSetConcurrency)) {
+			this.resultSetType = resultSetType;
+			this.resultSetConcurrency = resultSetConcurrency;
+		}
+		else
+		    throw new SQLException(ErrorMessages.get("ResultSet.unsupportedConcurrency", resultSetConcurrency, resultSetType));
+
+		if (connection.supportsResultSetHoldability(resultSetHoldability))
+			this.resultSetHoldability = resultSetHoldability;
+		else
+		    throw new SQLException(ErrorMessages.get("ResultSet.unsopportedHoldability", resultSetHoldability));
+			
+		
+		
 		this.readOnly = readOnly;
 		
 		this.preferredResultSetFetchDirection = OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION;

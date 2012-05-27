@@ -30,8 +30,8 @@ import java.util.Properties;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.jdbc.OrientJdbcConnection;
-import com.tinkerpop.blueprints.pgm.TransactionalGraph.Conclusion;
-import com.tinkerpop.blueprints.pgm.impls.orientdb.OrientGraph;
+import com.tinkerpop.blueprints.TransactionalGraph.Conclusion;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 /**
  * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
@@ -86,15 +86,11 @@ public class OrientTinkerpopGraphConnection extends OrientJdbcConnection{
      * @see com.orientechnologies.orient.jdbc.OrientJdbcConnection#unwrapImpl(java.lang.Class)
      */
     @Override
-    protected <T> T unwrapImpl(Class<T> iface) throws SQLException {
+    protected <T> T unwrapImpl(Class<T> iface) throws SQLException, ClassCastException {
         try {
             return iface.cast(graphDatabase);
         } catch (ClassCastException e) {
-            try {
-                return iface.cast(graphDatabase.getRawGraph());
-            } catch (ClassCastException e2) {
-                throw new SQLException(e2);
-            }
+            return iface.cast(graphDatabase.getRawGraph());
         }
     }
 
@@ -111,7 +107,6 @@ public class OrientTinkerpopGraphConnection extends OrientJdbcConnection{
      */
     @Override
     protected void configTransaction() {
-        this.graphDatabase.setMaxBufferSize(0);
         this.graphDatabase.startTransaction();
     }
 

@@ -88,12 +88,8 @@ public class OrientDocumentDatabaseConnection extends OrientJdbcConnection{
      * @see com.orientechnologies.orient.jdbc.OrientJdbcConnection#unwrapImpl(java.lang.Class)
      */
     @Override
-    protected <T> T unwrapImpl(Class<T> iface) throws SQLException {
-        try {
-            return iface.cast(database);
-        } catch (ClassCastException e) {
-            throw new SQLException(e);
-        }
+    protected <T> T unwrapImpl(Class<T> iface) throws SQLException, ClassCastException {
+        return iface.cast(database);
     }
 
     /* (non-Javadoc)

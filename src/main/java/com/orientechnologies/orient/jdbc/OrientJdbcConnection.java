@@ -37,21 +37,24 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.db.record.ODatabaseRecord;
 
 /**
  * TODO Add authors name
  * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
  *
  */
-public abstract class OrientJdbcConnection implements Connection {
-	
+public abstract class OrientJdbcConnection implements Connection, ConnectionSpecificMetaData {
+	//see ML discussion: https://groups.google.com/d/topic/orient-database/VmXkPlD74pA/discussion
+	//Dirty reads are always prevented but phantom and non-repeatable reads can occur
+	//because transactions don't lock reads
+    static final int DEFAULT_TRANSACTION_ISOLATION = Connection.TRANSACTION_READ_COMMITTED;
+
 	private static final int MESSAGE_FORMAT_CHOICE_INDEX = 3;
 	
-	private static final int DEFAULT_RESULT_SET_HOLDABILITY = ResultSet.HOLD_CURSORS_OVER_COMMIT;
-
 	private boolean readOnly = false;
 	protected boolean autoCommit;
-	private int resultSetHoldability = DEFAULT_RESULT_SET_HOLDABILITY;
+	private int resultSetHoldability = OrientJdbcResultSet.DEFAULT_HOLDABILITY;
 
 	protected abstract ODatabaseDocumentTx getOrientDatabase ();
 
@@ -162,10 +165,9 @@ public abstract class OrientJdbcConnection implements Connection {
 	}
 
 	public int getTransactionIsolation() throws SQLException {
-	    //TODO check with Luca
-		if (isClosed())
+	    if (isClosed())
 			throw new SQLException(ErrorMessages.get("Connection.getTransactionIsolationFromClosedObject"));
-		return Connection.TRANSACTION_SERIALIZABLE;
+		return DEFAULT_TRANSACTION_ISOLATION;
 	}
 
 	public Map<String, Class<?>> getTypeMap() throws SQLException {
@@ -241,10 +243,14 @@ public abstract class OrientJdbcConnection implements Connection {
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
 	    if (isClosed())
 	        throw new SQLException(ErrorMessages.get("Connection.setAutoCommitOnClosedObject"));
-		this.autoCommit = autoCommit;
-		//check that the auto commit has been changed and has been disabled
-		if (this.autoCommit != autoCommit && !autoCommit)
-		    configTransaction();
+	    //silently commit the underlying transaction if the autoCommit was disabled and has been enabled
+	    if (autoCommit != this.autoCommit) {
+		    if (autoCommit && !this.autoCommit)
+		    	commit();
+		    else if (this.autoCommit && !autoCommit)
+		    	configTransaction();
+			this.autoCommit = autoCommit;
+	    }   
 	}
 	
 	protected abstract void configTransaction();
@@ -275,6 +281,7 @@ public abstract class OrientJdbcConnection implements Connection {
 	}
 
 	public void setTransactionIsolation(int level) throws SQLException {
+		//TODO TO BE IMPLEMENTED
 		throw new SQLFeatureNotSupportedException();
 	}
 
@@ -290,12 +297,17 @@ public abstract class OrientJdbcConnection implements Connection {
         return isWrapperForImpl(iface);
     }
 
-	protected abstract  <T> T unwrapImpl(Class<T> iface) throws SQLException;
+	protected abstract  <T> T unwrapImpl(Class<T> iface) throws SQLException, ClassCastException;
     
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-        if (iface == null)
-            throw new SQLException(ErrorMessages.get("Wrapper.wrappedClassIsNull"));
-        return unwrapImpl(iface);
+		try {
+	        if (iface == null)
+	            throw new SQLException(ErrorMessages.get("Wrapper.wrappedClassIsNull"));
+	        return unwrapImpl(iface);
+		} catch (ClassCastException e) {
+			throw new SQLException(ErrorMessages.get("Connection.cannotUnwrap",
+            		ODatabaseRecord.class.getName(), this.getClass().getName()));
+		}
     }
 	public String getUrl() {
 		return getOrientDatabase().getURL();
@@ -324,4 +336,80 @@ public abstract class OrientJdbcConnection implements Connection {
     }
     
     protected abstract void rollabackImpl ();
+
+	@Override
+	public boolean supportsTransactionIsolationLevel(int level)
+			throws SQLException {
+		//see ML discussion: https://groups.google.com/d/topic/orient-database/VmXkPlD74pA/discussion
+    	switch (level) {
+    		case Connection.TRANSACTION_NONE:
+    		case Connection.TRANSACTION_READ_COMMITTED:
+    			return true;
+    		case Connection.TRANSACTION_READ_UNCOMMITTED:
+    		case Connection.TRANSACTION_REPEATABLE_READ:
+    		case Connection.TRANSACTION_SERIALIZABLE:
+    			return false;
+			default:
+				throw new SQLException(ErrorMessages.get("Connection.badTransactionIsolationlevel",
+						Connection.TRANSACTION_NONE + ", " + 
+						Connection.TRANSACTION_READ_COMMITTED + ", " +
+						Connection.TRANSACTION_READ_UNCOMMITTED + ", " + 
+						Connection.TRANSACTION_REPEATABLE_READ + ", " +
+						Connection.TRANSACTION_SERIALIZABLE, level));
+    	}
+	}
+
+	@Override
+	public boolean supportsTransactions() throws SQLException {
+		return true;
+	}
+
+	@Override
+	public boolean supportsResultSetConcurrency(int type, int concurrency)
+			throws SQLException {
+		if (supportsResultSetType(type)) {
+            switch (concurrency) {
+                case ResultSet.CONCUR_READ_ONLY:
+                    return true;
+                //TODO to be implemented!
+                case ResultSet.CONCUR_UPDATABLE:
+                    return false; 
+                default:
+                    throw new SQLException(ErrorMessages.get(
+                            "ResultSet.badConcurrency", ResultSet.CONCUR_READ_ONLY + ", " + ResultSet.CONCUR_UPDATABLE, concurrency));
+            }
+        } else
+            return false;
+	}
+
+	@Override
+	public boolean supportsResultSetType(int type) throws SQLException {
+		//see ML discussion: https://groups.google.com/d/topic/orient-database/VmXkPlD74pA/discussion
+        switch (type) {
+            case ResultSet.TYPE_FORWARD_ONLY:
+            case ResultSet.TYPE_SCROLL_INSENSITIVE:
+                return true;
+        	//TODO TO BE IMPLEMENTED
+            case ResultSet.TYPE_SCROLL_SENSITIVE:
+            	return false;
+            default:
+                throw new SQLException(ErrorMessages.get("ResultSet.badType",ResultSet.TYPE_FORWARD_ONLY + ", " + 
+                        ResultSet.TYPE_SCROLL_INSENSITIVE + ", " + ResultSet.TYPE_SCROLL_SENSITIVE, type));
+        }
+	}
+
+	@Override
+	public boolean supportsResultSetHoldability(int holdability)
+			throws SQLException {
+		switch (holdability) {
+        case ResultSet.HOLD_CURSORS_OVER_COMMIT:
+            return true; //this is the default behavior
+        //TODO to be implemented!
+        case ResultSet.CLOSE_CURSORS_AT_COMMIT:
+            return false;
+        default:
+            throw new SQLException(ErrorMessages.get(
+                    "ResultSet.badHoldability", ResultSet.CLOSE_CURSORS_AT_COMMIT + ", " + ResultSet.HOLD_CURSORS_OVER_COMMIT, holdability));
+		}	
+	}
 }

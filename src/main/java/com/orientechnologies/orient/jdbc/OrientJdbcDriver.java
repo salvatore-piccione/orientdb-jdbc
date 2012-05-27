@@ -26,6 +26,7 @@ import com.orientechnologies.orient.jdbc.common.OrientJdbcConnectionProperties;
 import com.orientechnologies.orient.jdbc.common.OrientJdbcConstants;
 import com.orientechnologies.orient.jdbc.connection.OrientDocumentDatabaseConnection;
 import com.orientechnologies.orient.jdbc.connection.OrientNativeGraphConnection;
+import com.orientechnologies.orient.jdbc.connection.OrientObjectDatabaseConnection;
 import com.orientechnologies.orient.jdbc.connection.OrientTinkerpopGraphConnection;
 
 public class OrientJdbcDriver implements java.sql.Driver {
@@ -73,10 +74,8 @@ public class OrientJdbcDriver implements java.sql.Driver {
     	            return new OrientDocumentDatabaseConnection(dbUrl, username, password, info);
     	        else if (OrientJdbcConnectionProperties.Values.NATIVE_GRAPH_DB.equals(connectionType))
     	            return new OrientNativeGraphConnection(dbUrl, username, password, info);
-    	        /* TODO We are waiting to fix the lack of support for OrientObjectDatabaseConnection
     	        else if (OrientJdbcConnectionProperties.Values.OBJECT_DB.equals(connectionType))
     	            return new OrientObjectDatabaseConnection(dbUrl, username, password, info);
-	            */
     	        else if (OrientJdbcConnectionProperties.Values.TINKERPOP_GRAPH_DB.equals(connectionType))
     	            return new OrientTinkerpopGraphConnection(dbUrl, username, password, info);
     	        else {

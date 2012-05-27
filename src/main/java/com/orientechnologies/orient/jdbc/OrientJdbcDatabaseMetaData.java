@@ -46,17 +46,16 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     private final OrientJdbcConnection connection;
     private final ODatabaseRecord database;
     private final OMetadata metadata;
-
-    public OrientJdbcDatabaseMetaData(OrientJdbcConnection iConnection) throws SQLException {
+    
+    protected OrientJdbcDatabaseMetaData(OrientJdbcConnection iConnection) throws SQLException {
         connection = iConnection;
         if (iConnection.isWrapperFor(ODatabaseRecord.class)) {
             database = iConnection.unwrap(ODatabaseRecord.class);
             metadata = database.getMetadata();
         }
         else {
-            //FIXME add support for ObjectDatabase
-            database = null;//iConnection.unwrap(ODatabaseObject.class);
-            metadata = null;
+            throw new SQLException(ErrorMessages.get("Connection.cannotUnwrap",
+            		ODatabaseRecord.class.getName(), iConnection.getClass().getName()));
         }
     }
 
@@ -73,12 +72,15 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
+    	//Data Definition statements executed in transactions
+    	//throw exception because they are not ignored
         return false;
     }
 
     public boolean dataDefinitionIgnoredInTransactions() throws SQLException {
-        //TODO Check with Luca if this is true
-        return true;
+    	//Data Definition statements executed in transactions
+    	//throw exception because they are not ignored
+        return false;
     }
 
     public boolean deletesAreDetected(int type) throws SQLException {
@@ -143,7 +145,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getDatabaseMinorVersion() throws SQLException {
-        return Integer.valueOf(OConstants.ORIENT_VERSION.split("\\.")[1].substring(0, 1));
+        return Integer.valueOf(OConstants.ORIENT_VERSION.split("\\.")[1]);
     }
 
     public String getDatabaseProductName() throws SQLException {
@@ -155,8 +157,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getDefaultTransactionIsolation() throws SQLException {
-        //TODO check with Luca
-        return Connection.TRANSACTION_SERIALIZABLE;
+        return OrientJdbcConnection.DEFAULT_TRANSACTION_ISOLATION;
     }
 
     public int getDriverMajorVersion() {
@@ -181,7 +182,8 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getExtraNameCharacters() throws SQLException {
-        //TODO check with Luca
+        //see ML discussion: https://groups.google.com/d/topic/orient-database/VmXkPlD74pA/discussion
+    	//To be sure, no extra chars are allowed
         return "";
     }
 
@@ -196,7 +198,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getIdentifierQuoteString() throws SQLException {
-        //TODO check with Luca
+        //see ML discussion: https://groups.google.com/d/topic/orient-database/VmXkPlD74pA/discussion
         return " ";
     }
 
@@ -331,7 +333,9 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
         }
         
         ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), iRecords, 
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION, false);
+                OrientJdbcResultSet.DEFAULT_TYPE, OrientJdbcResultSet.DEFAULT_CONCURRENCY, 
+                OrientJdbcResultSet.DEFAULT_HOLDABILITY, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION, 
+                false);
         return result;
     }
 
@@ -351,7 +355,7 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public int getResultSetHoldability() throws SQLException {
-        return OrientJdbcResultSet.DEFAULT_RESULT_SET_HOLDABILITY;
+        return OrientJdbcResultSet.DEFAULT_HOLDABILITY;
     }
 
     public RowIdLifetime getRowIdLifetime() throws SQLException {
@@ -421,7 +425,9 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
         records.add(new ODocument().field("TABLE_TYPE", "TABLE"));
 
         ResultSet result = new OrientJdbcResultSet((OrientJdbcStatement) connection.createStatement(), records, 
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION, false);
+        		OrientJdbcResultSet.DEFAULT_TYPE, OrientJdbcResultSet.DEFAULT_CONCURRENCY,
+        		OrientJdbcResultSet.DEFAULT_HOLDABILITY, OrientJdbcResultSet.DEFAULT_FETCH_DIRECTION,
+        		false);
 
         return result;
     }
@@ -749,45 +755,15 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-        if (supportsResultSetType(type)) {
-            switch (concurrency) {
-                case ResultSet.CONCUR_READ_ONLY:
-                    return true;
-                case ResultSet.CONCUR_UPDATABLE:
-                    return false; //TODO to be implemented!
-                default:
-                    throw new SQLException(ErrorMessages.get(
-                            "ResultSet.badConcurrency", ResultSet.CONCUR_READ_ONLY + ", " + ResultSet.CONCUR_UPDATABLE, concurrency));
-            }
-        } else
-            return false;
+        return this.connection.supportsResultSetConcurrency(type, concurrency);
     }
 
     public boolean supportsResultSetHoldability(int holdability) throws SQLException {
-        //TODO Check with Luca if this is right
-        switch (holdability) {
-            case ResultSet.HOLD_CURSORS_OVER_COMMIT:
-                return true; //this is the default behavior
-            case ResultSet.CLOSE_CURSORS_AT_COMMIT:
-                return false; //TODO to be implemented!
-            default:
-                throw new SQLException(ErrorMessages.get(
-                        "ResultSet.badHoldability", ResultSet.CLOSE_CURSORS_AT_COMMIT + ", " + ResultSet.HOLD_CURSORS_OVER_COMMIT, holdability));
-        }
+        return this.connection.supportsResultSetHoldability(holdability);
     }
 
     public boolean supportsResultSetType(int type) throws SQLException {
-        //TODO Check with Luca if this is right
-        switch (type) {
-            case ResultSet.TYPE_FORWARD_ONLY:
-            case ResultSet.TYPE_SCROLL_INSENSITIVE:
-                return true;
-            case ResultSet.TYPE_SCROLL_SENSITIVE:
-                return false;
-            default:
-                throw new SQLException(ErrorMessages.get("ResultSet.badType",ResultSet.TYPE_FORWARD_ONLY + ", " + 
-                        ResultSet.TYPE_SCROLL_INSENSITIVE + ", " + ResultSet.TYPE_SCROLL_SENSITIVE, type));
-        }
+        return this.connection.supportsResultSetType(type);
     }
 
     public boolean supportsSavepoints() throws SQLException {
@@ -853,12 +829,11 @@ public class OrientJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
-        //TODO to be checked with Luca
-        return false;
+        return this.connection.supportsTransactionIsolationLevel(level);
     }
 
     public boolean supportsTransactions() throws SQLException {
-        return true;
+        return this.connection.supportsTransactions();
     }
 
     public boolean supportsUnion() throws SQLException {

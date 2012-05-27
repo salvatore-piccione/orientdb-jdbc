@@ -70,25 +70,24 @@ public class OrientJdbcResultSet implements ResultSet {
     
     private static final int BEFORE_FIRST_INDEX = -1;
     
-    static final int DEFAULT_FETCH_DIRECTION = ResultSet.FETCH_FORWARD;
+    static final int DEFAULT_FETCH_DIRECTION = FETCH_FORWARD;
     static final int DEFAULT_FETCH_SIZE = OrientJdbcConstants.UNLIMITED_FETCH_SIZE;
     
-    static final int DEFAULT_RESULT_SET_TYPE = ResultSet.TYPE_FORWARD_ONLY;
-    static final int DEFAULT_RESULT_SET_CONCURRENCY = ResultSet.CONCUR_READ_ONLY;
-    static final int DEFAULT_RESULT_SET_HOLDABILITY = ResultSet.HOLD_CURSORS_OVER_COMMIT;
+    static final int DEFAULT_TYPE = TYPE_FORWARD_ONLY;
+    static final int DEFAULT_CONCURRENCY = CONCUR_READ_ONLY;
+    static final int DEFAULT_HOLDABILITY = HOLD_CURSORS_OVER_COMMIT;
 
     
 	private List<ODocument> records = null;
 	private OrientJdbcStatement statement;
-	private OrientJdbcDatabaseMetaData databaseMetaData;
 	//this is the actual index starting from 0
 	private int cursor;
 	private int rowCount;
 	private ODocument document;
 	private String[] fieldNames;
-	private int type;
-	private int concurrency;
-	private int holdability;
+	private final int type;
+	private final int concurrency;
+	private final int holdability;
 	private boolean closed;
 	
 	private int fetchDirection;
@@ -96,10 +95,9 @@ public class OrientJdbcResultSet implements ResultSet {
 	
 	private String currentColumnLabel;
 
-	OrientJdbcResultSet(OrientJdbcStatement iOrientJdbcStatement, List<ODocument> iRecords, 
+	protected OrientJdbcResultSet(OrientJdbcStatement iOrientJdbcStatement, List<ODocument> iRecords, 
 	        int type, int concurrency, int holdability, int fetchDirection, boolean includeRid) throws SQLException {
 	    statement = iOrientJdbcStatement;
-		databaseMetaData = (OrientJdbcDatabaseMetaData) statement.getConnection().getMetaData();
 		records = iRecords;
 		rowCount = iRecords.size();
 		
@@ -144,27 +142,13 @@ public class OrientJdbcResultSet implements ResultSet {
 			    this.fieldNames = fieldNames;
 			    
 		}
-		if  (databaseMetaData.supportsResultSetType(type))
-		    this.type = type;
-		else 
-		    throw new SQLException(ErrorMessages.get("ResultSet.unsupportedType", type, statement.getConnection().getClass().getName()));
-
-		if (databaseMetaData.supportsResultSetConcurrency(type, concurrency))
-		    this.concurrency = concurrency;
-		else
-		    throw new SQLException(ErrorMessages.get("ResultSet.unsupportedConcurrency", concurrency, statement.getConnection().getClass().getName()));
-
-		if (databaseMetaData.supportsResultSetHoldability(holdability))
-		    this.holdability = holdability;
-		else
-		    throw new SQLException(ErrorMessages.get("ResultSet.unsopportedHoldability", holdability, statement.getConnection().getClass().getName()));
+		
+		this.concurrency = concurrency;
+		this.type = type;
+		this.holdability = holdability;
 		
 		closed = false;
 	}
-
-//	private void setDatabaseOnThreadLocalInstance() {
-//		ODatabaseRecordThreadLocal.INSTANCE.set(document.getDatabase());
-//	}
 
 	public void close() throws SQLException {
 	    if (!closed) {

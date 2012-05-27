@@ -29,9 +29,9 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
-import com.orientechnologies.orient.core.db.object.ODatabaseObjectTx;
 import com.orientechnologies.orient.core.tx.OTransaction.TXTYPE;
 import com.orientechnologies.orient.jdbc.OrientJdbcConnection;
+import com.orientechnologies.orient.object.db.OObjectDatabaseTx;
 
 /**
  * @author Salvatore Piccione (TXT e-solutions SpA - salvatore.piccione AT network.txtgroup.com)
@@ -39,7 +39,7 @@ import com.orientechnologies.orient.jdbc.OrientJdbcConnection;
  */
 public class OrientObjectDatabaseConnection extends OrientJdbcConnection {
     
-    private ODatabaseObjectTx database;
+    private OObjectDatabaseTx database;
     
     private static final String EMPTY_STRING_ARGUMENT = "The %1$s cannot be an empty string";
     
@@ -57,7 +57,7 @@ public class OrientObjectDatabaseConnection extends OrientJdbcConnection {
              * 
              * database = ODatabaseObjectPool.global().acquire(iUrl, iUser, iPassword);
              */
-            database = new ODatabaseObjectTx(iUrl).open(iUser, iPassword);
+            database = new OObjectDatabaseTx(iUrl).open(iUser, iPassword);
         } catch (Throwable t) {
             throw new SQLException(t);
         }
@@ -68,18 +68,18 @@ public class OrientObjectDatabaseConnection extends OrientJdbcConnection {
      */
     @Override
     protected boolean isWrapperForImpl(Class<?> iface) {
-        return iface.isInstance(this.database);
+        return iface.isInstance(this.database) || iface.isInstance(this.database.getUnderlying());
     }
 
     /* (non-Javadoc)
      * @see com.orientechnologies.orient.jdbc.OrientJdbcConnection#unwrapImpl(java.lang.Class)
      */
     @Override
-    protected <T> T unwrapImpl(Class<T> iface) throws SQLException {
+    protected <T> T unwrapImpl(Class<T> iface) throws SQLException, ClassCastException {
         try {
             return iface.cast(this.database);
         } catch (ClassCastException e) {
-            throw new SQLException(e);
+            return iface.cast(this.database.getUnderlying());
         }
     }
     
@@ -88,11 +88,7 @@ public class OrientObjectDatabaseConnection extends OrientJdbcConnection {
      */
     @Override
     protected ODatabaseDocumentTx getOrientDatabase() {
-        //TODO The Object Database is not built upon that kind of OrientDatabase.
-        //The lowest-level common superclass is ODatabaseSchemaAware that cannot be passed
-        //to ODatabaseRecordThreadLocal.INSTANCE.set() which is widely used in the code
-        //to solve multi-threading issues.
-        return null;
+        return (ODatabaseDocumentTx) this.database.getUnderlying();
     }
 
     /* (non-Javadoc)
